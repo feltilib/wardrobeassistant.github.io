@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wardrobe Assistant</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0e0e0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem}
+  .window{width:100%;max-width:780px;border-radius:14px;overflow:hidden;box-shadow:0 8px 40px rgba(180,80,80,.18)}
+  .titlebar{background:#f4a7b9;padding:14px 18px;display:flex;align-items:center;gap:10px}
+  .dots{display:flex;gap:7px}
+  .dot{width:13px;height:13px;border-radius:50%}
+  .dot.red{background:#ff5f57}.dot.yellow{background:#febc2e}.dot.green{background:#28c840}
+  .titlebar-title{font-size:15px;font-weight:700;color:#8b2252;margin-left:8px}
+  .body{display:grid;grid-template-columns:260px 1fr;min-height:420px}
+  .sidebar{background:#fce4ec;padding:28px 20px;border-right:1.5px solid #f4a7b9}
+  .sidebar-label{font-size:11px;font-weight:700;color:#c2507a;letter-spacing:.08em;margin-bottom:14px}
+  .menu-btn{display:block;width:100%;text-align:left;font-size:14px;font-weight:600;color:#8b2252;background:#fff;border:1.5px solid #f4a7b9;border-radius:10px;padding:13px 16px;margin-bottom:10px;cursor:pointer;transition:background .15s}
+  .menu-btn:hover{background:#fce4ec}
+  .menu-btn.active{background:#f8bbd0;border-color:#e91e8c44}
+  .main{background:#fdf0f4;padding:28px 24px;overflow-y:auto}
+  .main-label{font-size:11px;font-weight:700;color:#c2507a;letter-spacing:.08em;margin-bottom:16px}
+  .panel{display:none}.panel.active{display:block}
+  /* outfit calendar cards */
+  .outfit-card{background:#fff;border:1.5px solid #f4a7b9;border-radius:10px;padding:13px 16px;margin-bottom:12px}
+  .outfit-card-title{font-size:14px;font-weight:700;color:#8b2252;margin-bottom:4px}
+  .outfit-card-sub{font-size:13px;color:#aaa}
+  /* form styles */
+  .form-group{margin-bottom:13px}
+  .form-group label{font-size:12px;font-weight:600;color:#c2507a;display:block;margin-bottom:5px}
+  .form-group input,.form-group select{width:100%;font-size:13px;padding:9px 12px;border-radius:9px;border:1.5px solid #f4a7b9;background:#fff;color:#5a1a35;outline:none}
+  .form-group input:focus,.form-group select:focus{border-color:#e91e63}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .submit-btn{margin-top:6px;width:100%;padding:11px;border-radius:10px;border:none;background:#f06292;color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s}
+  .submit-btn:hover{background:#e91e63}
+  .success{font-size:12px;color:#ad1457;background:#fce4ec;border-radius:8px;padding:7px 12px;margin-top:10px;display:none;text-align:center}
+  .empty{font-size:13px;color:#ccc;text-align:center;padding:2.5rem 0}
+  .item-row{background:#fff;border:1.5px solid #f4a7b9;border-radius:9px;padding:10px 14px;margin-bottom:9px;display:flex;justify-content:space-between;align-items:center}
+  .item-row-name{font-size:13px;font-weight:600;color:#8b2252}
+  .item-row-meta{font-size:11px;color:#bbb;margin-top:2px}
+  .del-btn{background:none;border:none;font-size:16px;cursor:pointer;color:#f4a7b9;padding:2px 6px}
+  .del-btn:hover{color:#e91e63}
+  .err{font-size:12px;color:#e91e63;margin-top:8px;display:none}
+  @media(max-width:560px){.body{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1.5px solid #f4a7b9}.row2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="window">
+  <!-- Title bar -->
+  <div class="titlebar">
+    <div class="dots">
+      <div class="dot red"></div>
+      <div class="dot yellow"></div>
+      <div class="dot green"></div>
+    </div>
+    <span class="titlebar-title">Wardrobe Assistant</span>
+  </div>
+
+  <div class="body">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-label">MENU</div>
+      <button class="menu-btn active" onclick="show('calendar',this)">View Calendar</button>
+      <button class="menu-btn" onclick="show('add',this)">+ Add Item</button>
+      <button class="menu-btn" onclick="show('create',this)">Create Outfit</button>
+      <button class="menu-btn" onclick="show('edit',this)">Edit Outfit</button>
+      <button class="menu-btn" onclick="show('items',this)">My Items</button>
+    </div>
+
+    <!-- Main panel -->
+    <div class="main">
+
+      <!-- CALENDAR -->
+      <div id="calendar" class="panel active">
+        <div class="main-label">OUTFIT CALENDAR</div>
+        <div id="cal-list"></div>
+      </div>
+
+      <!-- ADD ITEM -->
+      <div id="add" class="panel">
+        <div class="main-label">ADD ITEM</div>
+        <div class="form-group">
+          <label>Item name</label>
+          <input id="a-name" placeholder="e.g. Floral Blouse">
+        </div>
+        <div class="row2">
+          <div class="form-group">
+            <label>Type</label>
+            <select id="a-type">
+              <option>Top</option><option>Bottom</option><option>Hijab</option><option>Dress</option><option>Outerwear</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Color</label>
+            <input id="a-color" placeholder="e.g. Pink">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="form-group">
+            <label>Material</label>
+            <input id="a-material" placeholder="e.g. Chiffon">
+          </div>
+          <div class="form-group">
+            <label>Season</label>
+            <select id="a-season">
+              <option>All seasons</option><option>Spring</option><option>Summer</option><option>Autumn</option><option>Winter</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Hijab compatible?</label>
+          <select id="a-hijab">
+            <option>Yes</option><option>No</option><option>N/A</option>
+          </select>
+        </div>
+        <button class="submit-btn" onclick="addItem()">+ Add to Wardrobe</button>
+        <div class="success" id="add-success">✓ Item added!</div>
+      </div>
+
+      <!-- CREATE OUTFIT -->
+      <div id="create" class="panel">
+        <div class="main-label">CREATE OUTFIT</div>
+        <div class="form-group">
+          <label>Occasion</label>
+          <input id="c-occasion" placeholder="e.g. Casual, Work, Wedding">
+        </div>
+        <div class="form-group">
+          <label>Top</label>
+          <select id="c-top"></select>
+        </div>
+        <div class="form-group">
+          <label>Bottom</label>
+          <select id="c-bottom"></select>
+        </div>
+        <div class="form-group">
+          <label>Hijab</label>
+          <select id="c-hijab"></select>
+        </div>
+        <button class="submit-btn" onclick="createOutfit()">Save Outfit</button>
+        <div class="success" id="create-success">✓ Outfit saved!</div>
+      </div>
+
+      <!-- EDIT OUTFIT -->
+      <div id="edit" class="panel">
+        <div class="main-label">EDIT OUTFIT</div>
+        <div class="form-group">
+          <label>Date (yyyy-mm-dd)</label>
+          <div style="display:flex;gap:8px">
+            <input id="e-date" placeholder="e.g. 2025-06-01" style="flex:1">
+            <button class="submit-btn" onclick="findOutfit()" style="width:auto;padding:9px 16px;margin-top:0">Find</button>
+          </div>
+          <div class="err" id="edit-not-found">No outfit found for that date.</div>
+        </div>
+        <div id="edit-form" style="display:none">
+          <div id="edit-date-label" style="font-size:11px;color:#caa;margin-bottom:10px"></div>
+          <div class="form-group"><label>Occasion</label><input id="e-occasion"></div>
+          <div class="form-group"><label>Top</label><select id="e-top"></select></div>
+          <div class="form-group"><label>Bottom</label><select id="e-bottom"></select></div>
+          <div class="form-group"><label>Hijab</label><select id="e-hijab"></select></div>
+          <button class="submit-btn" onclick="saveEdit()">Save Changes</button>
+          <div class="success" id="edit-success">✓ Changes saved!</div>
+        </div>
+      </div>
+
+      <!-- MY ITEMS -->
+      <div id="items" class="panel">
+        <div class="main-label">MY ITEMS</div>
+        <div id="items-list"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+let wardrobe = JSON.parse(localStorage.getItem('wdrb_items')||'[]');
+let outfits  = JSON.parse(localStorage.getItem('wdrb_outfits')||'[]');
+let editIdx  = -1;
+
+function save(){
+  localStorage.setItem('wdrb_items', JSON.stringify(wardrobe));
+  localStorage.setItem('wdrb_outfits', JSON.stringify(outfits));
+}
+
+function show(id, btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.menu-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='calendar') renderCalendar();
+  if(id==='create')   populateSelects();
+  if(id==='items')    renderItems();
+  if(id==='edit'){
+    populateEditSelects();
+    document.getElementById('edit-form').style.display='none';
+    document.getElementById('edit-not-found').style.display='none';
+  }
+}
+
+function flash(id){
+  const el=document.getElementById(id);
+  el.style.display='block';
+  setTimeout(()=>el.style.display='none',2500);
+}
+
+function addItem(){
+  const name=document.getElementById('a-name').value.trim();
+  if(!name) return alert('Please enter an item name.');
+  wardrobe.push({
+    name,
+    type:     document.getElementById('a-type').value,
+    color:    document.getElementById('a-color').value,
+    material: document.getElementById('a-material').value,
+    season:   document.getElementById('a-season').value,
+    hijab:    document.getElementById('a-hijab').value
+  });
+  save();
+  document.getElementById('a-name').value='';
+  document.getElementById('a-color').value='';
+  document.getElementById('a-material').value='';
+  flash('add-success');
+}
+
+function populateSelects(){
+  const tops    = wardrobe.filter(i=>i.type==='Top'||i.type==='Dress');
+  const bottoms = wardrobe.filter(i=>i.type==='Bottom'||i.type==='Dress');
+  const hijabs  = wardrobe.filter(i=>i.type==='Hijab');
+  function fill(id,arr){
+    document.getElementById(id).innerHTML=
+      '<option value="">— none —</option>'+arr.map(i=>`<option>${i.name}</option>`).join('');
+  }
+  fill('c-top',tops); fill('c-bottom',bottoms); fill('c-hijab',hijabs);
+}
+
+function createOutfit(){
+  const occasion=document.getElementById('c-occasion').value.trim();
+  if(!occasion) return alert('Please enter an occasion.');
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const today=new Date();
+  outfits.push({
+    date:     today.toISOString().slice(0,10),
+    day:      days[today.getDay()],
+    occasion,
+    top:      document.getElementById('c-top').value,
+    bottom:   document.getElementById('c-bottom').value,
+    hijab:    document.getElementById('c-hijab').value
+  });
+  save();
+  flash('create-success');
+}
+
+function renderCalendar(){
+  const el=document.getElementById('cal-list');
+  if(!outfits.length){
+    el.innerHTML='<div class="empty">No outfits yet — create one first!</div>';
+    return;
+  }
+  const sorted=[...outfits].sort((a,b)=>b.date.localeCompare(a.date));
+  el.innerHTML=sorted.map(o=>{
+    const pieces=[o.top,o.bottom,o.hijab].filter(Boolean).join(' · ');
+    return `<div class="outfit-card">
+      <div class="outfit-card-title">${o.day} · ${o.occasion}</div>
+      <div class="outfit-card-sub">${pieces||'No pieces selected'}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderItems(){
+  const el=document.getElementById('items-list');
+  if(!wardrobe.length){
+    el.innerHTML='<div class="empty">No items yet — add some!</div>';
+    return;
+  }
+  el.innerHTML=wardrobe.map((it,i)=>`
+    <div class="item-row">
+      <div>
+        <div class="item-row-name">${it.name}</div>
+        <div class="item-row-meta">${it.type} · ${it.color||'—'} · ${it.material||'—'} · ${it.season}</div>
+      </div>
+      <button class="del-btn" onclick="deleteItem(${i})" title="Delete">✕</button>
+    </div>`).join('');
+}
+
+function deleteItem(i){
+  if(confirm('Delete "'+wardrobe[i].name+'"?')){
+    wardrobe.splice(i,1); save(); renderItems();
+  }
+}
+
+function populateEditSelects(){
+  const tops    = wardrobe.filter(i=>i.type==='Top'||i.type==='Dress');
+  const bottoms = wardrobe.filter(i=>i.type==='Bottom'||i.type==='Dress');
+  const hijabs  = wardrobe.filter(i=>i.type==='Hijab');
+  function fill(id,arr){
+    document.getElementById(id).innerHTML=
+      '<option value="">— none —</option>'+arr.map(i=>`<option>${i.name}</option>`).join('');
+  }
+  fill('e-top',tops); fill('e-bottom',bottoms); fill('e-hijab',hijabs);
+}
+
+function findOutfit(){
+  const date=document.getElementById('e-date').value.trim();
+  editIdx=outfits.findIndex(o=>o.date===date);
+  const nf=document.getElementById('edit-not-found');
+  const ef=document.getElementById('edit-form');
+  if(editIdx===-1){ nf.style.display='block'; ef.style.display='none'; return; }
+  nf.style.display='none';
+  const o=outfits[editIdx];
+  document.getElementById('edit-date-label').textContent='Editing: '+o.date;
+  document.getElementById('e-occasion').value=o.occasion;
+  document.getElementById('e-top').value=o.top||'';
+  document.getElementById('e-bottom').value=o.bottom||'';
+  document.getElementById('e-hijab').value=o.hijab||'';
+  ef.style.display='block';
+}
+
+function saveEdit(){
+  if(editIdx===-1) return;
+  outfits[editIdx]={
+    ...outfits[editIdx],
+    occasion: document.getElementById('e-occasion').value,
+    top:      document.getElementById('e-top').value,
+    bottom:   document.getElementById('e-bottom').value,
+    hijab:    document.getElementById('e-hijab').value
+  };
+  save(); flash('edit-success');
+}
+
+renderCalendar();
+</script>
+</body>
+</html>
